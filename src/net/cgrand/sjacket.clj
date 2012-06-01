@@ -1,6 +1,6 @@
 (ns net.cgrand.sjacket
   "Structural code transformations for the masses."
-  (:require [cgrand.sjacket.parser :as p]
+  (:require [net.cgrand.sjacket.parser :as p]
             [clojure.zip :as z]))
 
 (defn- child [loc kw]

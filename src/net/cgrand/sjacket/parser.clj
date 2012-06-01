@@ -1,4 +1,4 @@
-(ns cgrand.sjacket.parser
+(ns net.cgrand.sjacket.parser
   "A grammar and parser for Clojure."
   (:require [net.cgrand.parsley :as p]
             [net.cgrand.regex :as re]
