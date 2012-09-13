@@ -43,7 +43,8 @@
 (def rules
   {:sexpr- #{:nil :boolean :char :string :regex :number :symbol :keyword
              :list :vector :map :set :fn
-             :meta :var :deref :quote :syntax-quote :unquote :unquote-splicing :eval}
+             :meta :var :deref :quote :syntax-quote :unquote :unquote-splicing
+             :eval :reader-literal}
    :nil (token "nil")
    :boolean #{(token "true") (token "false")}
    :char (re/regex \\ (re/+ token-char))
@@ -86,6 +87,7 @@
    :unquote [#"~(?!@)" :sexpr]
    :unquote-splicing ["~@" :sexpr]
    :eval ["#=" :list]
+   :reader-literal #{["#" :symbol :sexpr]}
    
    :comment (p/unspaced #{";" "#!"} #"[^\n]*")
    :discard ["#_" :sexpr]
