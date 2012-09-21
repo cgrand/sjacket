@@ -7,6 +7,7 @@
 
 (def macro-char (cs/charset "\";'@^`~()[]{}\\%#"))
 (def terminating-macro-char (cs/- macro-char #{\# \'}))
+(def dispatch-macro-char (cs/charset "^'\"({=!<_"))
 
 (def whitespace-char
   (cs/- 
@@ -44,7 +45,7 @@
   {:sexpr- #{:nil :boolean :char :string :regex :number :symbol :keyword
              :list :vector :map :set :fn
              :meta :var :deref :quote :syntax-quote :unquote :unquote-splicing
-             :eval :reader-literal}
+             :unreadable :eval :reader-literal}
    :nil (token "nil")
    :boolean #{(token "true") (token "false")}
    :char (re/regex \\ (re/+ token-char))
@@ -79,7 +80,7 @@
    :map ["{" :sexpr* "}"]
    :set ["#{" :sexpr* "}"]
    :fn ["#(" :sexpr* ")"]
-   :meta ["^" :sexpr :sexpr]
+   :meta [#"#?\^" :sexpr :sexpr]
    :var ["#'" :symbol]
    :deref ["@" :sexpr]
    :quote ["'" :sexpr]
@@ -87,9 +88,10 @@
    :unquote [#"~(?!@)" :sexpr]
    :unquote-splicing ["~@" :sexpr]
    :eval ["#=" :list]
-   :reader-literal #{["#" :symbol :sexpr]}
+   :reader-literal [(re/regex \# (re/?! dispatch-macro-char)) :symbol :sexpr]
    
    :comment (p/unspaced #{";" "#!"} #"[^\n]*")
+   :unreadable "#<"
    :discard ["#_" :sexpr]
    
    :newline \newline
@@ -101,6 +103,4 @@
   (p/make-parser {:main :sexpr*
                   :space [space-nodes :*]}
                  rules))
-
-
 

@@ -23,22 +23,31 @@
       b)) (4/2
            d))")))
 
+(defn parsed-tags [input]
+  (let [parse-tree (p/parser input)]
+    (map :tag (:content parse-tree))))
+
 (deftest reader-literals
-  (let [instant "#inst \"2012-09-13T01:00:36.439-00:00\""
-        parse-tree (p/parser instant)]
-    (is (= 1 (count (:content parse-tree))))
-    (is (= :reader-literal (:tag (first (:content parse-tree))))))
+  (is (= [:reader-literal]
+         (parsed-tags "#inst \"2012-09-13T01:00:36.439-00:00\"")))
+  (is (= [:reader-literal]
+         (parsed-tags "#
+                      foo { 1 2, 3
+                      4}"))))
 
-  (let [poorly-spaced-literal "#
-                             foo { 1 2, 3
-                              4}"
-        parse-tree (p/parser poorly-spaced-literal)]
-    (is (= 1 (count (:content parse-tree))))
-    (is (= :reader-literal (:tag (first (:content parse-tree)))))))
+(deftest dispatch-macros
+  (is (= [:meta] (parsed-tags "#^{:foo 1} hi"))) ; old style meta
+  (is (= [:var] (parsed-tags "#'foo")))
 
-(deftest destructuring-proof
-  (is (= (sj/transform-src input1 3.5 (fn [[a b]] (list 'fn [] a b)))
-"(z (fn [] a ;comment
-    b)) (4/2
-         d))")))
+  ; TODO
+  ; (is (= [:regex] (parsed-tags "#\"foo\"")))
+
+  (is (= [:fn] (parsed-tags "#(* % %)")))
+  (is (= [:set] (parsed-tags "#{1 2 3}")))
+  (is (= [:eval] (parsed-tags "#=(+ 1 2)")))
+  (is (= [:comment]
+         (parsed-tags "#!/usr/bin/env clojure")))
+  (is (= [:unreadable :symbol :whitespace :symbol]
+         (parsed-tags "#<Foo something>")))
+  (is (= [:discard] (parsed-tags "#_foo"))))
 
