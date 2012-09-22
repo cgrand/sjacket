@@ -58,10 +58,8 @@
 (deftest dispatch-macros
   (is (= [:meta] (parsed-tags "#^{:foo 1} hi"))) ; old style meta
   (is (= [:var] (parsed-tags "#'foo")))
-
-  ; TODO
-  ; (is (= [:regex] (parsed-tags "#\"foo\"")))
-
+  (is (= [:regex]
+         (parsed-tags "#\"foo\\\"\\d+foo\""))) ; without escapes: #"foo\"\d+foo"
   (is (= [:fn] (parsed-tags "#(* % %)")))
   (is (= [:set] (parsed-tags "#{1 2 3}")))
   (is (= [:eval] (parsed-tags "#=(+ 1 2)")))
