@@ -1,6 +1,7 @@
 (ns net.cgrand.sjacket.test
   (:use [clojure.test :only [deftest is are]])
-  (:require [net.cgrand.sjacket :as sj]))
+  (:require [net.cgrand.sjacket :as sj]
+            [net.cgrand.sjacket.parser :as p]))
 
 (def input1
 "(z (a ;comment
@@ -22,8 +23,31 @@
       b)) (4/2
            d))")))
 
-(deftest destructuring-proof
-  (is (= (sj/transform-src input1 3.5 (fn [[a b]] (list 'fn [] a b)))
-"(z (fn [] a ;comment
-    b)) (4/2
-         d))")))
+(defn parsed-tags [input]
+  (let [parse-tree (p/parser input)]
+    (map :tag (:content parse-tree))))
+
+(deftest reader-literals
+  (is (= [:reader-literal]
+         (parsed-tags "#inst \"2012-09-13T01:00:36.439-00:00\"")))
+  (is (= [:reader-literal]
+         (parsed-tags "#
+                      foo { 1 2, 3
+                      4}"))))
+
+(deftest dispatch-macros
+  (is (= [:meta] (parsed-tags "#^{:foo 1} hi"))) ; old style meta
+  (is (= [:var] (parsed-tags "#'foo")))
+
+  ; TODO
+  ; (is (= [:regex] (parsed-tags "#\"foo\"")))
+
+  (is (= [:fn] (parsed-tags "#(* % %)")))
+  (is (= [:set] (parsed-tags "#{1 2 3}")))
+  (is (= [:eval] (parsed-tags "#=(+ 1 2)")))
+  (is (= [:comment]
+         (parsed-tags "#!/usr/bin/env clojure")))
+  (is (= [:unreadable :symbol :whitespace :symbol]
+         (parsed-tags "#<Foo something>")))
+  (is (= [:discard] (parsed-tags "#_foo"))))
+
