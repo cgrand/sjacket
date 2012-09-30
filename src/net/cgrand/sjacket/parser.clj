@@ -97,8 +97,8 @@
 
 (def parser 
   (p/make-parser {:main :sexpr*
-                  :space [space-nodes :*]}
+                  :space [space-nodes :*]
+                  :root-tag ::root}
                  rules))
-
 
 
