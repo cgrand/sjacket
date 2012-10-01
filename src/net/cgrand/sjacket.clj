@@ -48,7 +48,7 @@
   [({"true" true "false" false} (z/node (z/down x)))])
 
 (defmethod sexprs :string [x]
-  [(read-string (z/node (z/down x)))])
+  [(read-string (str \" (z/node (z/down x)) \"))])
 
 (defmethod sexprs :number [x]
   [(read-string (z/node (z/down x)))])
