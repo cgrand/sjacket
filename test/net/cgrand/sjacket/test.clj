@@ -28,6 +28,10 @@
     b)) (4/2
          d))")))
 
+(deftest strings
+  (is (= (sj/transform-src "\"abc\"" 1 #(apply str (reverse %)))
+         "\"cba\"")))
+
 (def incomplete-string-input
 "\"Hi,
 ")

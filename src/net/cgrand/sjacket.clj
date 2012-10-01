@@ -48,7 +48,7 @@
   [({"true" true "false" false} (z/node (z/down x)))])
 
 (defmethod sexprs :string [x]
-  [(read-string (str \" (z/node (z/down x)) \"))])
+  [(read-string (str \" (-> x z/down z/right z/node) \"))])
 
 (defmethod sexprs :number [x]
   [(read-string (z/node (z/down x)))])
@@ -294,6 +294,13 @@
 (defmethod insert-pt-unknown Number [loc where expr ctx]
   (insert loc where {:tag :number 
                      :content [(pr-str expr)]}))
+
+(defmethod insert-pt-unknown String [loc where expr ctx]
+  (insert loc where {:tag :string 
+                     :content ["\"" 
+                               (let [s (pr-str expr)]
+                                 (subs s 1 (dec (count s))))
+                               "\""]}))
 
 (defmethod insert-pt-unknown Boolean [loc where expr ctx]
   (insert loc where {:tag :boolean 
