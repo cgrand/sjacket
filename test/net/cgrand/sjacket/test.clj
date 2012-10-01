@@ -27,3 +27,14 @@
 "(z (fn [] a ;comment
     b)) (4/2
          d))")))
+
+(def incomplete-string-input
+"\"Hi,
+")
+
+(deftest incomplete-strings
+  (is (= :net.cgrand.parsley/unfinished
+         (:tag (p/parser incomplete-string-input))))
+  (is (= incomplete-string-input
+         (sj/str-pt (p/parser incomplete-string-input)))))
+
