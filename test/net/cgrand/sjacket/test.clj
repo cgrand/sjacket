@@ -47,6 +47,31 @@
   (let [parse-tree (p/parser input)]
     (map :tag (:content parse-tree))))
 
+(deftest parse-characters
+  (is (= [:char] (parsed-tags "\\newline")))
+  (is (= [:char] (parsed-tags "\\space")))
+  (is (= [:char] (parsed-tags "\\tab")))
+  (is (= [:char] (parsed-tags "\\backspace")))
+  (is (= [:char] (parsed-tags "\\formfeed")))
+  (is (= [:char] (parsed-tags "\\return")))
+  (is (= [:char] (parsed-tags "\\u0024")))
+  (is (= [:char] (parsed-tags "\\o1")))
+  (is (= [:char] (parsed-tags "\\o12")))
+  (is (= [:char] (parsed-tags "\\o123")))
+  (is (= [:char] (parsed-tags "\\t")))
+  (is (= [:char] (parsed-tags "\\\"")))
+  (is (= [:char] (parsed-tags "\\;")))
+  (is (= [:char] (parsed-tags "\\@")))
+  (is (= [:char] (parsed-tags "\\^")))
+  (is (= [:char :whitespace] (parsed-tags "\\f "))))
+
+(deftest parse-strings
+  (is (= [:string] (parsed-tags "\"foo\"")))
+  (is (= [:string] (parsed-tags "\"a word: \\\"foo\\\".\"")))
+  (is (= [:string] (parsed-tags "\"foo\\tbar\"")))
+  (is (= [:string] (parsed-tags "\"foo\\nbar\"")))
+  (is (= [:string] (parsed-tags "\"foo\\r\\nbar\""))))
+
 (deftest reader-literals
   (is (= [:reader-literal]
          (parsed-tags "#inst \"2012-09-13T01:00:36.439-00:00\"")))
@@ -96,3 +121,9 @@
   (is (= [[:keyword ":"]] (parsed-tag-and-content ":core/map")))
   (is (= [[:keyword "::"]] (parsed-tag-and-content "::foo/bar")))
   (is (= [[:keyword "::"]] (parsed-tag-and-content "::foo.bar/baz"))))
+
+(deftest parse-own-source-code
+  (is (p/parser (slurp (clojure.java.io/resource "net/cgrand/sjacket/test.clj"))))
+  (is (p/parser (slurp (clojure.java.io/resource "net/cgrand/sjacket.clj"))))
+  (is (p/parser (slurp (clojure.java.io/resource "net/cgrand/sjacket/parser.clj"))))
+)
