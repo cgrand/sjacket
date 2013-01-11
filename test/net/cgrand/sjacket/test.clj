@@ -63,7 +63,10 @@
   (is (= [:char] (parsed-tags "\\;")))
   (is (= [:char] (parsed-tags "\\@")))
   (is (= [:char] (parsed-tags "\\^")))
-  (is (= [:char :whitespace] (parsed-tags "\\f "))))
+  (is (= [:char :whitespace] (parsed-tags "\\f ")))
+  (is (= [:list] (parsed-tags "(comment \\a)")))
+  (is (= [:vector] (parsed-tags "[\\a]")))
+  (is (= [:char :comment] (parsed-tags "\\a; do something later"))))
 
 (deftest parse-strings
   (is (= [:string] (parsed-tags "\"foo\"")))
