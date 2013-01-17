@@ -71,11 +71,26 @@
   (is (= [:char :comment] (parsed-tags "\\a; do something later"))))
 
 (deftest parse-strings
+  (is (= [:string] (parsed-tags "\" \"")))
   (is (= [:string] (parsed-tags "\"foo\"")))
   (is (= [:string] (parsed-tags "\"a word: \\\"foo\\\".\"")))
   (is (= [:string] (parsed-tags "\"foo\\tbar\"")))
   (is (= [:string] (parsed-tags "\"foo\\nbar\"")))
-  (is (= [:string] (parsed-tags "\"foo\\r\\nbar\""))))
+  (is (= [:string] (parsed-tags "\"foo\\r\\nbar\"")))
+  (is (= [:list] (parsed-tags "(comment \"a\")")))
+  (is (= [:vector] (parsed-tags "[\"a\"]")))
+  (is (= [:string :comment] (parsed-tags "\"a\"; do something later"))))
+
+(deftest parse-regexes
+  (is (= [:regex] (parsed-tags "#\" \"")))
+  (is (= [:regex] (parsed-tags "#\"foo\"")))
+  (is (= [:regex] (parsed-tags "#\"a word: \\\"foo\\\".\"")))
+  (is (= [:regex] (parsed-tags "#\"foo\\tbar\"")))
+  (is (= [:regex] (parsed-tags "#\"foo\\nbar\"")))
+  (is (= [:regex] (parsed-tags "#\"foo\\r\\nbar\"")))
+  (is (= [:list] (parsed-tags "(comment #\"a\")")))
+  (is (= [:vector] (parsed-tags "[#\"a\"]")))
+  (is (= [:regex :comment] (parsed-tags "#\"a\"; do something later"))))
 
 (deftest parse-long-strings
   (is (= [:string]
