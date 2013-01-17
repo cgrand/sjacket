@@ -48,7 +48,11 @@
              :unreadable :eval :reader-literal}
    :nil (token "nil")
    :boolean #{(token "true") (token "false")}
-   :char (re/regex \\ (re/+ token-char))
+   :char (p/unspaced
+           [\\
+            (re/regex
+              cs/any-char
+              (re/* constituent-char))])
    :string (p/unspaced
               ["\""
                (re/regex
