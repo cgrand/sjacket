@@ -57,7 +57,11 @@
                            ["\\u" {\0 \9} (re/repeat constituent-char 3 3)]
                            ["\\" {\0 \9} (re/repeat constituent-char 0 2)]}))
                "\""])
-   :regex "#TODO" ; TODO
+   :regex [(re/regex \# (re/?= \"))
+           \"
+           (re/regex (re/* #{(cs/not \" \\)
+                             [\\ cs/any-char]}))
+           \"]
    ;; numbers should be validated but this is the exact "scope" of a number
    :number (re/regex (re/? #{\+ \-}) {\0 \9} (re/* constituent-char))
    :kw.ns (re/regex start-token-char
