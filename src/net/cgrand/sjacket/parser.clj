@@ -64,9 +64,6 @@
            \"]
    ;; numbers should be validated but this is the exact "scope" of a number
    :number (re/regex (re/? #{\+ \-}) {\0 \9} (re/* constituent-char))
-   :kw.ns (re/regex start-token-char
-                 (re/* token-char)
-                 (re/?= \/))
    :unrestricted.name (token #{"/"
                                [start-token-char (re/* (cs/- token-char \/))]})
    :sym.ns (re/regex start-token-char
@@ -80,9 +77,12 @@
                    [(cs/+ start-token-char \%) (re/* (cs/- token-char \/))]}))
    :symbol #{(p/unspaced :sym.ns "/" :unrestricted.name)
              :sym.name}
-   :keyword #{(p/unspaced #{":" "::"} :kw.ns "/" :unrestricted.name)
-              (p/unspaced #{":" "::"} :unrestricted.name)}
-   
+   :kw.ns (re/regex start-token-char
+                 (re/* token-char)
+                 (re/?= \/))
+   :keyword [(re/regex (re/repeat ":" 1 2))
+             #{(p/unspaced :kw.ns "/" :unrestricted.name)
+               (p/unspaced :unrestricted.name)}]
    :list ["(" :sexpr* ")"]
    :vector ["[" :sexpr* "]"]
    :map ["{" :sexpr* "}"]

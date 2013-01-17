@@ -84,3 +84,15 @@
          (parsed-tags "#<Foo something>")))
   (is (= [:discard] (parsed-tags "#_foo"))))
 
+(defn- parsed-tag-and-content [input]
+  (let [parse-tree (p/parser input)]
+    (map (juxt :tag (comp first :content))
+         (:content parse-tree))))
+
+(deftest keywords
+  (is (= [[:keyword ":"]] (parsed-tag-and-content ":foo")))
+  (is (= [[:keyword "::"]] (parsed-tag-and-content "::foo")))
+  (is (= [[:keyword ":"]] (parsed-tag-and-content ":clojure.core/map")))
+  (is (= [[:keyword ":"]] (parsed-tag-and-content ":core/map")))
+  (is (= [[:keyword "::"]] (parsed-tag-and-content "::foo/bar")))
+  (is (= [[:keyword "::"]] (parsed-tag-and-content "::foo.bar/baz"))))
