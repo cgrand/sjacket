@@ -48,20 +48,21 @@
              :unreadable :eval :reader-literal}
    :nil (token "nil")
    :boolean #{(token "true") (token "false")}
-   :char (re/regex \\ (re/+ token-char))
+   :char (p/unspaced
+           [\\
+            (re/regex
+              cs/any-char
+              (re/* constituent-char))])
    :string (p/unspaced
-              ["\""
-               (re/regex
-                   (re/* #{(cs/not \" \\)
-                           [\\ (cs/charset "trn\\\"bf")]
-                           ["\\u" {\0 \9} (re/repeat constituent-char 3 3)]
-                           ["\\" {\0 \9} (re/repeat constituent-char 0 2)]}))
-               "\""])
-   :regex [(re/regex \# (re/?= \"))
-           \"
-           (re/regex (re/* #{(cs/not \" \\)
-                             [\\ cs/any-char]}))
-           \"]
+              [\"
+               #"([^\"\\]|\\[trn\\\"bf]|\\u[0-9].{3}|\\[0-9].{0,2})*+"
+               \"])
+
+   :regex (p/unspaced
+            [(re/regex \# (re/?= \"))
+             \"
+             #"([^\"\\]|\\.)*+"
+             \"])
    ;; numbers should be validated but this is the exact "scope" of a number
    :number (re/regex (re/? #{\+ \-}) {\0 \9} (re/* constituent-char))
    :unrestricted.name (token #{"/"
