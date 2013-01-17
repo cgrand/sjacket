@@ -55,6 +55,21 @@
                       foo { 1 2, 3
                       4}"))))
 
+(deftest symbols
+  (is (= [:symbol] (parsed-tags "main")))
+  (is (= [:symbol] (parsed-tags "foo/bar")))
+  (is (= [:symbol] (parsed-tags "foo.core/is-bar-baz?")))
+  (is (= [:symbol] (parsed-tags "-main"))))
+
+(deftest numbers
+  (is (= [:number] (parsed-tags "1")))
+  (is (= [:number] (parsed-tags "12")))
+  (is (= [:number] (parsed-tags "-1")))
+  (is (= [:number] (parsed-tags "1e14")))
+  (is (= [:number] (parsed-tags "15N")))
+  (is (= [:number] (parsed-tags "1.5M")))
+  (is (= [:number] (parsed-tags "1.03e14"))))
+
 (deftest dispatch-macros
   (is (= [:meta] (parsed-tags "#^{:foo 1} hi"))) ; old style meta
   (is (= [:var] (parsed-tags "#'foo")))

@@ -70,7 +70,7 @@
                  (re/?= \/))
    :sym.name (re/regex
                (re/?! #{(token #{"true" "false" "nil"})
-                        [#{\+ \_} {\0 \9}]})
+                        [#{\+ \-} {\0 \9}]})
                (token 
                  #{"/"
                    [(cs/+ start-token-char \%) (re/* (cs/- token-char \/))]}))
