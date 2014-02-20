@@ -29,6 +29,11 @@
 (def start-token-char
   (cs/- token-char {\0 \9} "/:" macro-char))
 
+;; This is to allow numeric keywords, because of the outcome of
+;; CLJ-1003/CLJ-1252/CLJ-1286
+(def kw-char
+  (cs/- token-char "/:" macro-char))
+
 (defn token [re]
   ; TODO compute the union of two regexes
   (re/regex re (re/?! token-char)))
@@ -80,12 +85,17 @@
                    [(cs/+ start-token-char \%) (re/* (cs/- token-char \/))]}))
    :symbol #{(p/unspaced :sym.ns "/" :unrestricted.name)
              :sym.name}
-   :kw.ns (re/regex start-token-char
-                 (re/* token-char)
-                 (re/?= \/))
+
+   :kw.ns (re/regex kw-char
+                    (re/* kw-char)
+                    (re/?= \/))
+
+   :kw.name (token #{"/"
+                     [kw-char (re/* (cs/- kw-char \/))]})
+
    :keyword [(re/regex (re/repeat ":" 1 2))
-             #{(p/unspaced :kw.ns "/" :unrestricted.name)
-               (p/unspaced :unrestricted.name)}]
+             #{(p/unspaced :kw.ns "/" :kw.name)
+               (p/unspaced :kw.name)}]
    :list ["(" :sexpr* ")"]
    :vector ["[" :sexpr* "]"]
    :map ["{" :sexpr* "}"]
