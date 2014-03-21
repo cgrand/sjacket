@@ -112,6 +112,7 @@
   (is (= [:symbol] (parsed-tags "main")))
   (is (= [:symbol] (parsed-tags "foo/bar")))
   (is (= [:symbol] (parsed-tags "foo.core/is-bar-baz?")))
+  (is (= [:symbol] (parsed-tags "clojure.core//")))
   (is (= [:symbol] (parsed-tags "-main"))))
 
 (deftest numbers

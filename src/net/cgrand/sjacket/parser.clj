@@ -75,7 +75,7 @@
    :sym.ns (re/regex (re/?! #{(token #{"true" "false" "nil"})
                               [#{\+ \-} {\0 \9}]})
                      start-token-char
-                     (re/* token-char)
+                     (re/* (cs/- token-char \/))
                      (re/?= \/))
    :sym.name (re/regex
                (re/?! #{(token #{"true" "false" "nil"})
