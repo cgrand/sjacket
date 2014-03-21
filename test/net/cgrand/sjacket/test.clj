@@ -150,10 +150,15 @@
          (:content parse-tree))))
 
 (deftest keywords
+  (is (= [[:keyword ":"]] (parsed-tag-and-content ":1")))
+  (is (= [[:keyword ":"]] (parsed-tag-and-content ":42")))
+  (is (= [[:keyword ":"]] (parsed-tag-and-content ":42/a")))
+  (is (= [[:keyword ":"]] (parsed-tag-and-content ":a/42")))
   (is (= [[:keyword ":"]] (parsed-tag-and-content ":foo")))
   (is (= [[:keyword "::"]] (parsed-tag-and-content "::foo")))
   (is (= [[:keyword ":"]] (parsed-tag-and-content ":clojure.core/map")))
   (is (= [[:keyword ":"]] (parsed-tag-and-content ":core/map")))
+  (is (= [[:keyword "::"]] (parsed-tag-and-content "::100")))
   (is (= [[:keyword "::"]] (parsed-tag-and-content "::foo/bar")))
   (is (= [[:keyword "::"]] (parsed-tag-and-content "::foo.bar/baz"))))
 
