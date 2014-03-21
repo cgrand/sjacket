@@ -67,13 +67,15 @@
    :number (re/regex (re/? #{\+ \-}) {\0 \9} (re/* constituent-char))
    :unrestricted.name (token #{"/"
                                [start-token-char (re/* (cs/- token-char \/))]})
-   :sym.ns (re/regex start-token-char
-                 (re/* token-char)
-                 (re/?= \/))
+   :sym.ns (re/regex (re/?! #{(token #{"true" "false" "nil"})
+                              [#{\+ \-} {\0 \9}]})
+                     start-token-char
+                     (re/* token-char)
+                     (re/?= \/))
    :sym.name (re/regex
                (re/?! #{(token #{"true" "false" "nil"})
                         [#{\+ \-} {\0 \9}]})
-               (token 
+               (token
                  #{"/"
                    [(cs/+ start-token-char \%) (re/* (cs/- token-char \/))]}))
    :symbol #{(p/unspaced :sym.ns "/" :unrestricted.name)

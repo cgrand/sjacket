@@ -118,10 +118,17 @@
   (is (= [:number] (parsed-tags "1")))
   (is (= [:number] (parsed-tags "12")))
   (is (= [:number] (parsed-tags "-1")))
+  (is (= [:number] (parsed-tags "+1")))
   (is (= [:number] (parsed-tags "1e14")))
   (is (= [:number] (parsed-tags "15N")))
   (is (= [:number] (parsed-tags "1.5M")))
-  (is (= [:number] (parsed-tags "1.03e14"))))
+  (is (= [:number] (parsed-tags "1.03e14")))
+  (is (= [:number] (parsed-tags "-1.03e14")))
+  (is (= [:number] (parsed-tags "1.03e-14")))
+  (is (= [:number] (parsed-tags "+1.03e+14")))
+  (is (= [:number] (parsed-tags "4/3")))
+  (is (= [:number] (parsed-tags "-4/3")))
+  (is (= [:number] (parsed-tags "+4/3"))))
 
 (deftest dispatch-macros
   (is (= [:meta] (parsed-tags "#^{:foo 1} hi"))) ; old style meta
@@ -181,7 +188,7 @@
   (is (p/parser (slurp (clojure.java.io/resource "clojure/walk.clj"))))
   (is (p/parser (slurp (clojure.java.io/resource "clojure/xml.clj"))))
   (is (p/parser (slurp (clojure.java.io/resource "clojure/zip.clj"))))
-  
+
   (is (p/parser (slurp (clojure.java.io/resource "clojure/java/browse.clj"))))
   (is (p/parser (slurp (clojure.java.io/resource "clojure/java/browse_ui.clj"))))
   (is (p/parser (slurp (clojure.java.io/resource "clojure/java/io.clj"))))
