@@ -61,14 +61,14 @@
             :else m)]
     [(vary-meta d merge m)]))
 
-(defn to-sexprs [node]
+(defn to-sexprs [nodes]
   (let [log (atom [])
         sexprs-mm  sexprs] 
     [(binding [sexprs (fn [loc]
                        (let [r (sexprs-mm loc)]
                          (when r (swap! log conj [(first r) loc]))
                          r))]
-      (sexprs (z/xml-zip node)))
+      (sexprs (z/xml-zip {:tag ::p/root :content nodes})))
      @log]))
 
 ;; What must be remembered?
@@ -84,7 +84,7 @@
             (nth (iterate z/right (z/down loc)) n)) (-> loc z/root z/xml-zip)
     (reverse (map (comp count z/lefts) (take-while z/up (iterate z/up old-loc))))))
 
-(defn- subedit
+(defn subedit
   "Delimits a loc transformation. f returns a loc."
   [loc f & args]
   (relocate (apply f loc args) loc))
@@ -94,7 +94,7 @@
      (fn [loc#] (-> loc# ~@edits))))
 
 (defn- deep-rightmost [loc]
-  (if (z/branch? loc)
+  (if (when loc (z/branch? loc))
     (recur (z/rightmost (z/down loc)))
     loc))
 
@@ -111,28 +111,18 @@
                    column) loc)
           column))))
   ([loc inclusive]
-    (if inclusive
-      (let [loc (deep-rightmost loc)
-            leaf (z/node loc)]
+    (if-let [loc (when inclusive (deep-rightmost loc))]
+      (let [leaf (z/node loc)]
         (if (= "\n" leaf)
           0
           (+ (column loc) (count leaf))))
       (column loc))))
 
-#_(defn- indentations 
-  "Returns a sequence of relative indentations" [loc]
-  (map #(let [o (column %)]
-          (when (or (zero? o) (sexprs %))
-            o)) (content-locs loc)))
-
-#_(defn to-pt [expr context]
-  )
-
 
 ;; (z (a
 ;;     b)) (c
 ;;          d))
-;; an insert of two chars occur in z:
+;; an append of two chars occur in z:
 ;; (zxx (a
 ;;       b)) (c
 ;;            d))
@@ -212,12 +202,12 @@
 ;; IDEA: convert from PT-zippers to sexpr-zippers so as to compute similarity
 
 ;;;;;;;
-(defmulti insert-pt-unknown (fn [loc where expr ctx] (class expr)))
+(defmulti append-pt-unknown (fn [loc expr ctx] (class expr)))
 
-(defn- insert [loc where node]
-  (if (= :next where)
-    (-> loc (z/insert-right node) z/right)
-    (-> loc (z/insert-child node) z/down)))
+(defn- append [loc node]
+  (if (and (z/branch? loc) (empty? (z/children loc)))
+    (-> loc (z/insert-child node) z/down)
+    (-> loc (z/insert-right node) z/right)))
 
 (defn- original-loc [expr ctx]
   (or
@@ -227,20 +217,30 @@
             ; TODO meta
             (when (= e expr) oloc)) ctx)))
 
-(defn insert-oloc [loc where oloc]
-  (let [delta (- (column loc (= :next where)) (column oloc))]
-    (insert loc where (z/node (subedit oloc shift delta)))))
+(defn append-oloc [loc oloc]
+  (let [delta (- (column loc true) (column oloc))]
+    (append loc (z/node (subedit oloc shift delta)))))
 
 ;; TODO fix meta
-(defn insert-pt [loc where expr ctx]
+(defn append-pt [loc expr ctx]
   (if-let [oloc (original-loc expr ctx)]
-    (insert-oloc loc where oloc)
-    (insert-pt-unknown loc where expr ctx)))
+    (append-oloc loc oloc)
+    (append-pt-unknown loc expr ctx)))
+
+(declare append-pts)
+
+(defn spliceable [x]
+  (with-meta (sequence x) {::spliceable true}))
+
+(defn ensure-spliceable [x]
+  (if (::spliceable (meta x))
+    x
+    (with-meta (list x) {::spliceable true})))
 
 (defn to-pt [expr ctx]
   (-> {:tag ::p/root :content []}
     z/xml-zip
-    (insert-pt :in expr ctx)
+    (append-pts (ensure-spliceable expr) ctx)
     z/root))
 
 (defn- left-expr-loc [loc]
@@ -261,68 +261,68 @@
       (take-while #(not= nloc %)
                   (iterate z/right (z/right loc))))))
 
-(defn insert-pts [loc where exprs ctx]
+(defn append-pts [loc exprs ctx]
   (if-let [[expr & exprs] (seq exprs)]
-    (let [loc (insert-pt loc where expr ctx)]
+    (let [loc (append-pt loc expr ctx)]
       (if-let [[nexpr] exprs]
         (recur (if-let [slocs (spacer-locs expr nexpr ctx)]
                  (reduce 
                    (fn [loc sloc]
-                     (insert-oloc loc :next sloc)) 
+                     (append-oloc loc sloc)) 
                    loc slocs)
-                 (insert loc :next {:tag :whitespace :content [" "]}))
-               :next exprs ctx)
+                 (append loc {:tag :whitespace :content [" "]}))
+               exprs ctx)
         loc))
     loc))
 
-(defmethod insert-pt-unknown clojure.lang.Symbol [loc where expr ctx]
-  (insert loc where {:tag :symbol 
+(defmethod append-pt-unknown clojure.lang.Symbol [loc expr ctx]
+  (append loc {:tag :symbol 
                      :content (if-let [ns (namespace expr)]
                                 [{:tag :ns :content [ns]}
                                  "/"
                                  {:tag :name :content [(name expr)]}]
                                 [{:tag :name :content [(name expr)]}])}))
 
-(defmethod insert-pt-unknown clojure.lang.Keyword [loc where expr ctx]
-  (insert loc where {:tag :keyword 
+(defmethod append-pt-unknown clojure.lang.Keyword [loc expr ctx]
+  (append loc {:tag :keyword 
                      :content (if-let [ns (namespace expr)]
                                 [":" {:tag :ns :content [ns]}
                                  "/"
                                  {:tag :name :content [(name expr)]}]
                                 [":" {:tag :name :content [(name expr)]}])}))
 
-(defmethod insert-pt-unknown Number [loc where expr ctx]
-  (insert loc where {:tag :number 
+(defmethod append-pt-unknown Number [loc expr ctx]
+  (append loc {:tag :number 
                      :content [(pr-str expr)]}))
 
-(defmethod insert-pt-unknown String [loc where expr ctx]
-  (insert loc where {:tag :string 
+(defmethod append-pt-unknown String [loc expr ctx]
+  (append loc {:tag :string 
                      :content ["\"" 
                                (let [s (pr-str expr)]
                                  (subs s 1 (dec (count s))))
                                "\""]}))
 
-(defmethod insert-pt-unknown Boolean [loc where expr ctx]
-  (insert loc where {:tag :boolean 
+(defmethod append-pt-unknown Boolean [loc expr ctx]
+  (append loc {:tag :boolean 
                      :content [(pr-str expr)]}))
 
-(defmethod insert-pt-unknown nil [loc where expr ctx]
-  (insert loc where {:tag :nil 
+(defmethod append-pt-unknown nil [loc expr ctx]
+  (append loc {:tag :nil 
                      :content ["nil"]}))
 
-(defmethod insert-pt-unknown clojure.lang.ISeq [loc where expr ctx]
+(defmethod append-pt-unknown clojure.lang.ISeq [loc expr ctx]
   (-> loc
-    (insert where {:tag :list :content ["(" ")"]})
+    (append {:tag :list :content ["(" ")"]})
     (subedit-> 
       z/down
-      (insert-pts :next expr ctx))))
+      (append-pts expr ctx))))
 
-(defmethod insert-pt-unknown clojure.lang.IPersistentVector [loc where expr ctx]
+(defmethod append-pt-unknown clojure.lang.IPersistentVector [loc expr ctx]
   (-> loc
-    (insert where {:tag :list :content ["[" "]"]})
+    (append {:tag :list :content ["[" "]"]})
     (subedit-> 
       z/down
-      (insert-pts :next expr ctx))))
+      (append-pts expr ctx))))
 
 (defn str-pt [pt]
   (apply str (filter string? (tree-seq map? :content pt))))
@@ -349,13 +349,29 @@
 (defn expr-loc-at [tree offset]
   (when-let [[loc] (loc-at tree offset)]
     (let [loc (z/up loc)]
-      (if (#{:name :namespace} (:tag (z/node loc)))
+      (if (#{:name :namespace :whitespace} (:tag (z/node loc)))
         (z/up loc)
         loc))))
 
+(defn- char-count [node]
+  (if (string? node)
+    (count node)
+    (reduce + 0 (map char-count (:content node)))))
+
+(defn offset-of
+  ([loc]
+    (offset-of loc false))
+  ([loc inclusive]
+    (loop [offset (if inclusive (char-count (z/node loc)) 0) loc loc] 
+      (if-let [loc (z/left loc)]
+        (recur (+ offset (char-count (z/node loc))) loc)
+        (if-let [loc (z/up loc)]
+          (recur offset loc)
+          offset)))))
+
 (defn transform-loc [loc f & args]
   (let [node (z/node loc)
-        node (let [[[expr] ctx] (to-sexprs node)
+        node (let [[[expr] ctx] (to-sexprs [node])
                    expr' (apply f expr args)]
                (to-pt expr' ctx))
         nloc (z/replace loc node)
@@ -374,22 +390,20 @@
         ptree2 (apply transform ptree offset f args)]
     (str-pt ptree2)))
 
-;; TODO : splicing results (eg unwrap)
-
 
 
 ; bad tests
 #_(=> (println (transform-src 
    "  (-> loc
    ;a
-       (insert where {:tag :list :content [\"[\" \"]\"]})
+       (append {:tag :list :content [\"[\" \"]\"]})
        (subedit-> 
          z/down
-         (insert-pts :next expr ctx)))"
+         (append-pts expr ctx)))"
      3 (comp macroexpand-1 macroexpand-1)))
   (subedit-> (clojure.core/-> loc
 ;a
-    (insert where {:tag :list :content ["[" "]"]})) z/down
-      (insert-pts :next expr ctx))
+    (append {:tag :list :content ["[" "]"]})) z/down
+      (append-pts expr ctx))
 nil
 )
