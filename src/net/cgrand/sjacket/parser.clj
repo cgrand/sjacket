@@ -6,7 +6,7 @@
             [net.cgrand.regex.unicode :as unicode]))
 
 (def macro-char (cs/charset "\";'@^`~()[]{}\\%#"))
-(def terminating-macro-char (cs/- macro-char #{\# \'}))
+(def terminating-macro-char (cs/- macro-char #{\# \' \%}))
 (def dispatch-macro-char (cs/charset "^'\"({=!<_"))
 
 (def whitespace-char
