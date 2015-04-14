@@ -32,7 +32,8 @@
 ;; This is to allow numeric keywords, because of the outcome of
 ;; CLJ-1003/CLJ-1252/CLJ-1286
 (def kw-char
-  (cs/- token-char "/:" macro-char))
+  (cs/+ (cs/- token-char \/ macro-char)
+        \#))
 
 (defn token [re]
   ; TODO compute the union of two regexes
