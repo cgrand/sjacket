@@ -10,7 +10,7 @@
 (def dispatch-macro-char (cs/charset "^'\"({=!<_"))
 
 (def whitespace-char
-  (cs/- 
+  (cs/-
     (cs/+
       (unicode/cats "Zs")
       (unicode/cats "Zl")
@@ -23,7 +23,7 @@
   (cs/not whitespace-char macro-char))
 
 ;; maps to readToken
-(def token-char 
+(def token-char
   (cs/not whitespace-char terminating-macro-char))
 
 (def start-token-char
@@ -32,14 +32,15 @@
 ;; This is to allow numeric keywords, because of the outcome of
 ;; CLJ-1003/CLJ-1252/CLJ-1286
 (def kw-char
-  (cs/- token-char "/:" macro-char))
+  (cs/+ (cs/- token-char \/ macro-char)
+        \#))
 
 (defn token [re]
   ; TODO compute the union of two regexes
   (re/regex re (re/?! token-char)))
 
-#_(re/regex #{\+ \-} :? 
-       #{["0" (?! {\8 \9})] 
+#_(re/regex #{\+ \-} :?
+       #{["0" (?! {\8 \9})]
          [{\1 \9} {\0 \9} :*]
          ["0" #{\x \X} {\0 \9 \A \F \a \f} :+]
          ["0" {\0 \7} :+ (?! {\0 \9})]
@@ -110,17 +111,17 @@
    :unquote-splicing ["~@" :sexpr]
    :eval ["#=" :list]
    :reader-literal [(re/regex \# (re/?! dispatch-macro-char)) :symbol :sexpr]
-   
+
    :comment (p/unspaced #{";" "#!"} #"[^\n]*")
    :unreadable "#<"
    :discard ["#_" :sexpr]
-   
+
    :newline \newline
    :whitespace (re/regex (re/+ (cs/- whitespace-char \newline)))})
 
 (def space-nodes #{:comment :discard :newline :whitespace})
 
-(def parser 
+(def parser
   (p/make-parser {:main :sexpr*
                   :space [space-nodes :*]
                   :root-tag ::root}

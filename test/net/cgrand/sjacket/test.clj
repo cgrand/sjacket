@@ -47,6 +47,15 @@
   (let [parse-tree (p/parser input)]
     (map :tag (:content parse-tree))))
 
+(defn has-no-unexpected-nodes? [input]
+  (->> (tree-seq :tag :content input)
+       (map :tag)
+       (not-any? #(= :net.cgrand.parsley/unexpected %))))
+
+(defn parses-without-unexpected-nodes? [input]
+  (let [parsed-input (p/parser input)]
+    (and parsed-input (has-no-unexpected-nodes? parsed-input))))
+
 (deftest parse-characters
   (is (= [:char] (parsed-tags "\\newline")))
   (is (= [:char] (parsed-tags "\\space")))
@@ -151,53 +160,69 @@
          (:content parse-tree))))
 
 (deftest keywords
-  (is (= [[:keyword ":"]] (parsed-tag-and-content ":1")))
-  (is (= [[:keyword ":"]] (parsed-tag-and-content ":42")))
-  (is (= [[:keyword ":"]] (parsed-tag-and-content ":42/a")))
-  (is (= [[:keyword ":"]] (parsed-tag-and-content ":a/42")))
-  (is (= [[:keyword ":"]] (parsed-tag-and-content ":foo")))
-  (is (= [[:keyword "::"]] (parsed-tag-and-content "::foo")))
-  (is (= [[:keyword ":"]] (parsed-tag-and-content ":clojure.core/map")))
-  (is (= [[:keyword ":"]] (parsed-tag-and-content ":core/map")))
-  (is (= [[:keyword "::"]] (parsed-tag-and-content "::100")))
-  (is (= [[:keyword "::"]] (parsed-tag-and-content "::foo/bar")))
-  (is (= [[:keyword "::"]] (parsed-tag-and-content "::foo.bar/baz"))))
+  (are [input] (= [[[:keyword ":"]] true]
+                  [(parsed-tag-and-content input)
+                   (parses-without-unexpected-nodes? input)])
+       ":1"
+       ":42"
+       ":42/a"
+       ":a/42"
+       ":foo"
+       ":clojure.core/map"
+       ":core/map"
+       ":li#last"
+       ":xs:attribute"))
+
+(deftest namespace-scoped-keywords
+  (are [input] (and (= [[[:keyword "::"]] true]
+                       [(parsed-tag-and-content input)
+                        (parses-without-unexpected-nodes? input)]))
+       "::100"
+       "::foo"
+       "::foo/bar"
+       "::foo.bar/baz"))
+
+(defn valid-file-parse? [classpath-to-file]
+  (let [parsed-input (-> classpath-to-file
+                         clojure.java.io/resource
+                         slurp
+                         p/parser)]
+    (and parsed-input (has-no-unexpected-nodes? parsed-input))))
 
 (deftest parse-own-source-code
-  (is (p/parser (slurp (clojure.java.io/resource "net/cgrand/sjacket/test.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "net/cgrand/sjacket.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "net/cgrand/sjacket/parser.clj")))))
+  (is (valid-file-parse? "net/cgrand/sjacket/test.clj"))
+  (is (valid-file-parse? "net/cgrand/sjacket.clj"))
+  (is (valid-file-parse? "net/cgrand/sjacket/parser.clj")))
 
 ;; using clojure's source as an example (commenting some files to avoid tying
 ;;   to a particular clojure version above 1.3)
 (deftest parse-clojure-source-code
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/core.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/core_deftype.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/core_print.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/core_proxy.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/data.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/genclass.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/gvec.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/inspector.clj"))))
-  ;(is (p/parser (slurp (clojure.java.io/resource "clojure/instant.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/main.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/parallel.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/pprint.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/reflect.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/repl.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/set.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/stacktrace.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/string.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/template.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/test.clj"))))
-  ;(is (p/parser (slurp (clojure.java.io/resource "clojure/uuid.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/walk.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/xml.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/zip.clj"))))
-
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/java/browse.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/java/browse_ui.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/java/io.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/java/javadoc.clj"))))
-  (is (p/parser (slurp (clojure.java.io/resource "clojure/java/shell.clj")))))
+  (is (valid-file-parse? "clojure/core.clj"))
+  (is (valid-file-parse? "clojure/core_deftype.clj"))
+  (is (valid-file-parse? "clojure/core_print.clj"))
+  (is (valid-file-parse? "clojure/core_proxy.clj"))
+  (is (valid-file-parse? "clojure/data.clj"))
+  (is (valid-file-parse? "clojure/genclass.clj"))
+  (is (valid-file-parse? "clojure/gvec.clj"))
+  (is (valid-file-parse? "clojure/inspector.clj"))
+  ;(is (valid-file-parse? "clojure/instant.clj"))
+  (is (valid-file-parse? "clojure/main.clj"))
+  (is (valid-file-parse? "clojure/parallel.clj"))
+  (is (valid-file-parse? "clojure/pprint.clj"))
+  (is (valid-file-parse? "clojure/reflect.clj"))
+  (is (valid-file-parse? "clojure/repl.clj"))
+  (is (valid-file-parse? "clojure/set.clj"))
+  (is (valid-file-parse? "clojure/stacktrace.clj"))
+  (is (valid-file-parse? "clojure/string.clj"))
+  (is (valid-file-parse? "clojure/template.clj"))
+  (is (valid-file-parse? "clojure/test.clj"))
+  ;(is (valid-file-parse? "clojure/uuid.clj"))
+  (is (valid-file-parse? "clojure/walk.clj"))
+  (is (valid-file-parse? "clojure/xml.clj"))
+  (is (valid-file-parse? "clojure/zip.clj"))
+  (is (valid-file-parse? "clojure/java/browse.clj"))
+  (is (valid-file-parse? "clojure/java/browse_ui.clj"))
+  (is (valid-file-parse? "clojure/java/io.clj"))
+  (is (valid-file-parse? "clojure/java/javadoc.clj"))
+  (is (valid-file-parse? "clojure/java/shell.clj")))
 
