@@ -7,7 +7,7 @@
 
 (def macro-char (cs/charset "\";'@^`~()[]{}\\%#"))
 (def terminating-macro-char (cs/- macro-char #{\# \' \%}))
-(def dispatch-macro-char (cs/charset "^'\"({=!<_"))
+(def dispatch-macro-char (cs/charset "^'\"({=!<_:"))
 
 (def whitespace-char
   (cs/-
@@ -49,7 +49,7 @@
 
 (def rules
   {:sexpr- #{:nil :boolean :char :string :regex :number :symbol :keyword
-             :list :vector :map :set :fn
+             :list :vector :namespaced-map :map :set :fn
              :meta :var :deref :quote :syntax-quote :unquote :unquote-splicing
              :unreadable :eval :reader-literal}
    :nil (token "nil")
@@ -94,12 +94,15 @@
    :kw.name (token #{"/"
                      [kw-char (re/* (cs/- kw-char \/))]})
 
+
    :keyword [(re/regex (re/repeat ":" 1 2))
              #{(p/unspaced :kw.ns "/" :kw.name)
                (p/unspaced :kw.name)}]
    :list ["(" :sexpr* ")"]
    :vector ["[" :sexpr* "]"]
    :map ["{" :sexpr* "}"]
+   :namespaced-map #{["#::" #{"" :symbol} :map]
+                     [(re/regex "#:" (re/?= (cs/not \:))) :symbol :map]}
    :set ["#{" :sexpr* "}"]
    :fn ["#(" :sexpr* ")"]
    :meta [#"#?\^" :sexpr :sexpr]
