@@ -182,6 +182,20 @@
        "::foo/bar"
        "::foo.bar/baz"))
 
+(deftest namespaced-maps
+  (are [input] (and (= [[[:namespaced-map "#::"]] true]
+                       [(parsed-tag-and-content input)
+                        (parses-without-unexpected-nodes? input)]))
+       "#::a{1 nil, :b nil, :b/c nil, :_/d nil}"
+       "#::a {1 nil, :b nil, :b/c nil, :_/d nil}"
+       "#::{:foo :bar}")
+  (are [input] (and (= [[[:namespaced-map "#:"]] true]
+                       [(parsed-tag-and-content input)
+                        (parses-without-unexpected-nodes? input)]))
+       "#:a{1 nil, :b nil, :b/c nil, :_/d nil}"
+       "#:a {1 nil, :b nil, :b/c nil, :_/d nil}")
+  (is (not (parses-without-unexpected-nodes? "#:{1 2}"))))
+
 (defn valid-file-parse? [classpath-to-file]
   (let [parsed-input (-> classpath-to-file
                          clojure.java.io/resource
@@ -226,3 +240,12 @@
   (is (valid-file-parse? "clojure/java/javadoc.clj"))
   (is (valid-file-parse? "clojure/java/shell.clj")))
 
+;; using clojure's reader test suite (commenting since it depends on both a
+;; minimum clojure version and the clojure codebase being downloaded as a peer
+;; directory to sjacket)
+;(deftest parse-clojure-lang-tests
+;  (let [parsed-input (-> "../clojure/test/clojure/test_clojure/reader.cljc"
+;                         clojure.java.io/file
+;                         slurp
+;                         p/parser)]
+;    (is (and parsed-input (has-no-unexpected-nodes? parsed-input)))))
