@@ -4,5 +4,5 @@
   :license {:name "Eclipse Public License 1.0"}
   :dependencies [[org.clojure/clojure "[1.3.0,)"]
                  [net.cgrand/regex "1.1.0"]
-                 [net.cgrand/parsley "0.9.2"]])
+                 [net.cgrand/parsley "0.9.3"]])
 
